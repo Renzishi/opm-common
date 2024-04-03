@@ -1,7 +1,8 @@
 {
   "name": "SATNUM",
   "sections": [
-    "REGIONS"
+    "REGIONS",
+    "SCHEDULE"
   ],
   "data": {
     "value_type": "INT"

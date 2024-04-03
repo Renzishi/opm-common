@@ -1454,6 +1454,11 @@ void FieldProps::handle_schedule_keywords(const std::vector<DeckKeyword>& keywor
             continue;
         }
 
+        if (Fieldprops::keywords::SCHEDULE::int_keywords.count(name) == 1) {
+            this->handle_int_keyword(Fieldprops::keywords::SCHEDULE::int_keywords.at(name), keyword, box);
+            continue;
+        }
+
         if (Fieldprops::keywords::box_keywords.count(name) == 1) {
             handle_box_keyword(keyword, box);
             continue;

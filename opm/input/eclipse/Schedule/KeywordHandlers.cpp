@@ -323,6 +323,11 @@ void handleVFPPROD(HandlerContext& handlerContext)
     handlerContext.state().vfpprod.update( std::move(table) );
 }
 
+void handleSATNUM(HandlerContext& handlerContext)
+{
+    handlerContext.state().events().addEvent( ScheduleEvents::SATNUM_CHANGE );
+}
+
 }
 
 const KeywordHandlers& KeywordHandlers::getInstance()
@@ -362,6 +367,7 @@ KeywordHandlers::KeywordHandlers()
         { "NEXTSTEP", &handleNEXTSTEP   },
         { "NUPCOL"  , &handleNUPCOL     },
         { "PYACTION", &handlePYACTION   },
+        { "SATNUM"  , &handleSATNUM     },
         { "SOURCE",   &handleSource },
         { "SUMTHIN" , &handleSUMTHIN    },
         { "TUNING"  , &handleTUNING     },

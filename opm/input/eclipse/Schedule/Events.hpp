@@ -133,6 +133,11 @@ namespace Opm
              * For now, the WELOPEN, WCONPROD and WCONINJE keywords are considered with this event
              */
             REQUEST_OPEN_WELL = (1 << 21),
+
+            /*
+             * SATNUM has changed
+             */
+            SATNUM_CHANGE = (1 << 22),
         };
     }
 

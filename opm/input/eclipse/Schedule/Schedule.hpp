@@ -447,7 +447,10 @@ namespace Opm
 
         friend std::ostream& operator<<(std::ostream& os, const Schedule& sched);
         void dump_deck(std::ostream& os) const;
-
+        
+        const ScheduleDeck& get_sched_deck() const & {
+            return m_sched_deck;
+        }
     private:
         friend class HandlerContext;
 

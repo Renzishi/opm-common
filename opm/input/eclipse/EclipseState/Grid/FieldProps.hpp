@@ -32,7 +32,7 @@
 
 #include <opm/input/eclipse/Deck/DeckSection.hpp>
 #include <opm/input/eclipse/Deck/value_status.hpp>
-
+#include <opm/input/eclipse/EclipseState/Grid/EclipseGrid.hpp>
 #include <cstddef>
 #include <limits>
 #include <map>
@@ -625,6 +625,7 @@ private:
     std::unordered_map<std::string, std::string> fipreg_shortname_translation{};
 
     std::unordered_map<std::string,Fieldprops::TranCalculator> tran;
+    EclipseGrid m_inputGrid;
 };
 
 }

@@ -296,15 +296,23 @@ namespace Opm {
                     for (; rowAfterIdx < static_cast<int>(size()); ++ rowAfterIdx)
                         if (!defaultApplied(rowAfterIdx))
                             break;
-
-
+                            
+                    {
                     // switch to extrapolation by a constant at the fringes
-                    if (rowBeforeIdx < 0 && rowAfterIdx >= static_cast<int>(size()))
+                    if (rowBeforeIdx < 0 && rowAfterIdx >= static_cast<int>(size())){
+                        if(tableName=="SWOF"||tableName=="SGOF"){
+                            break;
+                        }else{
                         throw std::invalid_argument("Column " + m_schema.name() + " can't be fully defaulted");
-                    else if (rowBeforeIdx < 0)
+                        }
+                    }
+                    else if (rowBeforeIdx < 0){
                         rowBeforeIdx = rowAfterIdx;
-                    else if (rowAfterIdx >= static_cast<int>(size()))
+                    }
+                    else if (rowAfterIdx >= static_cast<int>(size())){
                         rowAfterIdx = rowBeforeIdx;
+                    }
+                    }
 
                     {
                         const size_t before = static_cast<size_t>(rowBeforeIdx);

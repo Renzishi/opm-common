@@ -2067,7 +2067,7 @@ namespace
     {
         static constexpr bool can_default()
         {
-            return false;
+            return true;
         }
 
         static constexpr const char* errmsg()

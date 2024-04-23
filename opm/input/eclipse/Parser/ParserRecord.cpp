@@ -129,6 +129,10 @@ namespace {
         for( const auto& parserItem : *this )
             items.emplace_back( parserItem.scan( rawRecord, active_unitsystem, default_unitsystem ) );
 
+        if(location.keyword=="MULTFLT"&&this->size()!=rawRecord.max_size()){
+            rawRecord.pop_front();
+        }
+
         if (rawRecord.size() > 0) {
             std::string msg_format = fmt::format("Record contains too many items in keyword {{0}}. Expected {} items, found {}.\n", this->size(), rawRecord.max_size()) +
                                                  "In file {1} at line {2}.\n" +

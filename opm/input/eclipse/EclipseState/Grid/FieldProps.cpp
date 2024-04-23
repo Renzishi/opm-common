@@ -45,7 +45,7 @@
 #include <opm/input/eclipse/Parser/ParserKeywords/O.hpp>
 #include <opm/input/eclipse/Parser/ParserKeywords/P.hpp>
 #include <opm/input/eclipse/Parser/ParserKeywords/T.hpp>
-
+#include <iostream>
 #include "Operate.hpp"
 
 #include <algorithm>
@@ -476,6 +476,13 @@ bool FieldProps::rst_cmp(const FieldProps& full_arg, const FieldProps& rst_arg) 
         full_arg.tran == rst_arg.tran;
 }
 
+double linearInterpolation(double depth1, double pressure1, double depth2, double pressure2, double grid_depth) {
+    double delta_depth = depth2 - depth1;
+    double delta_pressure = pressure2 - pressure1;
+    double ratio = delta_pressure / delta_depth;
+    double b = pressure1 - ratio * depth1;
+    return ratio * grid_depth + b;
+}
 
 FieldProps::FieldProps(const Deck& deck, const Phases& phases, const EclipseGrid& grid, const TableManager& tables_arg) :
     active_size(grid.getNumActive()),
@@ -491,7 +498,8 @@ FieldProps::FieldProps(const Deck& deck, const Phases& phases, const EclipseGrid
     cell_depth(extract_cell_depth(grid)),
     m_default_region(default_region_keyword(deck)),
     grid_ptr(&grid),
-    tables(tables_arg)
+    tables(tables_arg),
+    m_inputGrid(deck,nullptr)
 {
     this->tran.emplace( "TRANX", Fieldprops::TranCalculator("TRANX") );
     this->tran.emplace( "TRANY", Fieldprops::TranCalculator("TRANY") );
@@ -519,6 +527,152 @@ FieldProps::FieldProps(const Deck& deck, const Phases& phases, const EclipseGrid
             }
         }
     }
+    if (deck.hasKeyword("PRVD")){
+    std::vector< const Opm::DeckKeyword* > prvdlist = deck.getKeywordList("PRVD");
+    std::vector< const Opm::DeckKeyword* > index = deck.getKeywordList("EQLDIMS");
+    auto tableindex = index.at(0)->getDataRecord().getItem(0).getData<int>()[0];
+    auto prvddata = prvdlist.at(0)->getRecord(tableindex-1).getDataItem().getData<double>();
+    std::vector<double> pressure;
+    std::vector<double> depth;
+    for (std::vector<double>::size_type j = 0; j < prvddata.size(); j++) {
+        if (j % 2 == 0) {
+            depth.push_back(prvddata[j]);
+        } else {
+            pressure.push_back(prvddata[j]);
+        }
+    }
+    std::vector<double> grid_pressure;
+    int actn = 0;
+    for(int i:this->m_actnum){
+        if(i==0){
+            grid_pressure.push_back(0.0);
+        }else{
+        
+        double interpolated_pressure = 0.0;
+        if ((this->cell_depth[actn])< depth[0]) {
+            interpolated_pressure = linearInterpolation(depth[0], pressure[0], depth[1], pressure[1], this->cell_depth[actn]);
+            actn++;
+        } else if (this->cell_depth[actn] > (depth[depth.size() - 1])) {
+            interpolated_pressure = linearInterpolation(depth[depth.size() - 2], pressure[pressure.size() - 2], depth[depth.size() - 1], pressure[pressure.size() - 1], this->cell_depth[actn]);
+            actn++;
+        } else {
+            for (std::vector<double>::size_type i = 0; i < depth.size() - 1; ++i) {
+                if (this->cell_depth[actn] >= depth[i] && this->cell_depth[actn] <= depth[i+1]) {
+                    interpolated_pressure = linearInterpolation(depth[i], pressure[i], depth[i+1], pressure[i+1], this->cell_depth[actn]);
+                    break;
+                }
+            }
+            actn++;
+        }
+        grid_pressure.push_back(interpolated_pressure);
+    }
+    }
+
+    std::vector<Opm::Dimension> active_dimensions;
+    std::vector<Opm::Dimension> default_dimensions;
+    {
+        std::vector< std::string > m_dimensions;
+        auto active_unitsystem = deck.getActiveUnitSystem();
+        auto default_unitsystem = deck.getDefaultUnitSystem();
+        m_dimensions.push_back("Pressure");
+        for (const auto& dim_string : m_dimensions) {
+             active_dimensions.push_back( active_unitsystem.getNewDimension(dim_string) );
+             default_dimensions.push_back( default_unitsystem.getNewDimension(dim_string) );
+        }
+    }
+    
+    Opm::DeckKeyword keyword(prvdlist.at(0)->location(), "PRESSURE");
+    keyword.setDataKeyword(true);
+    std::vector< Opm::DeckItem > items;
+    Opm::DeckItem item("data", double(), active_dimensions, default_dimensions);
+    for(std::vector<double>::size_type i=0;i<grid_pressure.size();i++) {
+        item.push_back(grid_pressure[i]);
+    }
+    items.emplace_back(item);
+    keyword.addRecord(Opm::DeckRecord{ std::move( items ), false });
+    auto &tmp = const_cast<Deck&>(deck);
+    for (auto it = tmp.begin(); it != tmp.end(); ++it) {
+        if (it->name() == "PRVD") {
+            *it = keyword;
+            break;
+        }
+    }
+    const_cast<Opm::Deck &>(deck)=tmp;
+    const_cast<Opm::Deck &>(deck).addKeyword(DeckKeyword(prvdlist.at(0)->location(),"echo"));
+    }
+
+    if(!deck.hasKeyword("NTG")&&deck.hasKeyword("DZNET")){
+        std::vector<const Opm::DeckKeyword *> dz;
+        std::vector<const Opm::DeckKeyword *> dznet = deck.getKeywordList("DZNET");
+        auto dznetList = dznet.at(0)->getDataRecord().getItem(0).getData<double>();
+        const size_t cartGridSize = nx * ny * nz;
+        std::vector<double> ntg(cartGridSize);
+        std::vector<double> thickness(cartGridSize);
+
+        if(deck.hasKeyword("DZ")||deck.hasKeyword("DZV")){
+            if(deck.hasKeyword("DZ")) {
+                dz = deck.getKeywordList("DZ");
+              }else {
+                dz = deck.getKeywordList("DZV");
+            }
+            auto dzList = dz.at(0)->getDataRecord().getItem(0).getData<double>();
+            for (size_t i = 0; i < cartGridSize; i++) {
+                ntg[i]=dznetList[i]/dzList[i];
+                if(ntg[i]>=1.0){
+                    ntg[i]=1.0;
+                    std::cerr << "warning:dznet/dz>1.0->set 1.0 where:(" << i / (nx * ny) + 1 << ", " << (i % (nx * ny)) / nx + 1 << ", " << (i % (nx * ny)) % nx + 1 << ")" << std::endl;
+                }
+            }
+           
+
+        }else{
+            Opm::EclipseGrid& ecl_grid = m_inputGrid;
+            for (size_t i = 0; i < cartGridSize; i++) {
+                thickness[i] = ecl_grid.getCellThickness(i);
+                ntg[i]=dznetList[i]/thickness[i];
+                if(ntg[i]>=1.0){
+                    ntg[i]=1.0;
+                    std::cerr << "warning:dznet/dz>1.0->set 1.0 where:(" << i / (nx * ny) + 1 << ", " << (i % (nx * ny)) / nx + 1 << ", " << (i % (nx * ny)) % nx + 1 << ")" << std::endl;
+                }
+            }
+        }
+            std::vector<Opm::Dimension> active_dimensions;
+            std::vector<Opm::Dimension> default_dimensions;
+            {
+                std::vector<std::string> m_dimensions;
+                auto active_unitsystem = deck.getActiveUnitSystem();
+                auto default_unitsystem = deck.getDefaultUnitSystem();
+                m_dimensions.push_back("1");
+                for (const auto &dim_string : m_dimensions)
+                {
+                    active_dimensions.push_back(active_unitsystem.getNewDimension(dim_string));
+                    default_dimensions.push_back(default_unitsystem.getNewDimension(dim_string));
+                }
+            }
+    
+    
+            Opm::DeckKeyword keyword(dznet.at(0)->location(), "NTG");
+            keyword.setDataKeyword(true);
+            std::vector<Opm::DeckItem> items;
+            Opm::DeckItem item("data", double(), active_dimensions, default_dimensions);
+            for (std::vector<double>::size_type  i = 0; i < ntg.size(); i++)
+            {
+                item.push_back(ntg[i]);
+            }
+            items.emplace_back(item);
+            keyword.addRecord(Opm::DeckRecord{std::move(items), false});
+            auto &tmp = const_cast<Deck&>(deck);
+            for (auto it = tmp.begin(); it != tmp.end(); ++it)
+            {
+                if (it->name() == "DZNET")
+                {
+                    *it = keyword;
+                    break;
+                }
+            }
+            const_cast<Opm::Deck &>(deck) = tmp;
+            const_cast<Opm::Deck &>(deck).addKeyword(DeckKeyword(dznet.at(0)->location(),"ECHO"));
+        }
 
 
     if (DeckSection::hasGRID(deck))

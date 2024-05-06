@@ -58,6 +58,7 @@
 #include <opm/input/eclipse/EclipseState/Tables/Regdims.hpp>
 #include <opm/input/eclipse/EclipseState/Tables/TLMixpar.hpp>
 #include <opm/input/eclipse/EclipseState/Tables/Ppcwmax.hpp>
+#include <opm/input/eclipse/EclipseState/Tables/TransmisTable.hpp>
 
 namespace Opm {
 
@@ -183,6 +184,8 @@ namespace Opm {
         const std::map<int, SkprpolyTable>& getSkprpolyTables() const;
         const std::map<std::string, TableContainer>& getSimpleTables() const;
 
+        const TransmisTable& getTransmisTable() const;
+
         /// deck has keyword "IMPTVD" --- Imbition end-point versus depth tables
         bool useImptvd() const;
 
@@ -197,6 +200,9 @@ namespace Opm {
 
         /// deck has keyword "JFUNC" --- Use Leverett's J Function for capillary pressure
         bool useJFunc() const;
+
+        /// deck has kerword "TRANSMIS" -- Enable time-variation of permeability
+        bool useTransmis() const;
 
         double rtemp() const;
 
@@ -388,6 +394,7 @@ namespace Opm {
         WatdentTable m_watdentTable;
         SgofletTable m_sgofletTable;
         SwofletTable m_swofletTable;
+        TransmisTable m_transmisTable;
         std::vector<PvtwsaltTable> m_pvtwsaltTables;
         std::vector<RwgsaltTable> m_rwgsaltTables;
         std::vector<BrineDensityTable> m_bdensityTables;
@@ -407,6 +414,7 @@ namespace Opm {
         bool hasEnptvd = false;// if deck has keyword ENPTVD
         bool hasEqlnum = false;// if deck has keyword EQLNUM
         bool hasShrate = false;// if deck has keyword SHRATE
+        bool hasTransmis = false;// if deck has keyword TRANSMIS
         std::optional<JFunc> jfunc;
 
         DenT oilDenT;

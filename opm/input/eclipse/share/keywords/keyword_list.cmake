@@ -868,6 +868,7 @@ set( keywords
      000_Eclipse100/T/TRADS
      000_Eclipse100/T/TRANGL
      000_Eclipse100/T/TRANR
+     000_Eclipse100/T/TRANSMIS
      000_Eclipse100/T/TRANTHT
      000_Eclipse100/T/TRANX
      000_Eclipse100/T/TRANY

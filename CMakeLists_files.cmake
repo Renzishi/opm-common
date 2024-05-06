@@ -180,6 +180,7 @@ if(ENABLE_ECL_INPUT)
     opm/input/eclipse/EclipseState/Tables/BrineDensityTable.cpp
     opm/input/eclipse/EclipseState/Tables/SolventDensityTable.cpp
     opm/input/eclipse/EclipseState/Tables/Tabdims.cpp
+    opm/input/eclipse/EclipseState/Tables/TransmisTable.cpp
     opm/input/eclipse/Parser/ErrorGuard.cpp
     opm/input/eclipse/Parser/InputErrorAction.cpp
     opm/input/eclipse/Parser/ParseContext.cpp
@@ -1238,6 +1239,7 @@ if(ENABLE_ECL_INPUT)
        opm/input/eclipse/EclipseState/Tables/Sof3Table.hpp
        opm/input/eclipse/EclipseState/Tables/SgofTable.hpp
        opm/input/eclipse/EclipseState/Tables/TracerVdTable.hpp
+       opm/input/eclipse/EclipseState/Tables/TransmisTable.hpp
        opm/input/eclipse/EclipseState/EclipseState.hpp
        opm/input/eclipse/EclipseState/EclipseConfig.hpp
        opm/input/eclipse/EclipseState/Aquifer/Aquancon.hpp

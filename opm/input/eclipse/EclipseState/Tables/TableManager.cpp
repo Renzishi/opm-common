@@ -161,6 +161,14 @@ std::optional<JFunc> make_jfunc(const Deck& deck) {
             this->checkPVTOMonotonicity(deck);
         }
 
+        if( deck.hasKeyword( "TRANSMIS" ) ) {
+            this->m_transmisTable = TransmisTable( deck["TRANSMIS"].back() );
+            if (m_tabdims.getNumSatTables() != m_transmisTable.size()) {
+                throw std::logic_error("TRANSMIS ERROR: Number of table " + std::to_string(m_transmisTable.size()) + " is mismatch NTSFUN " + std::to_string(m_tabdims.getNumSatTables()));
+            }
+            hasTransmis = true;
+        }
+
         if( deck.hasKeyword( "PVTSOL" ) )
            initFullTables(deck, "PVTSOL", m_pvtsolTables);
 
@@ -1223,6 +1231,14 @@ std::optional<JFunc> make_jfunc(const Deck& deck) {
 
     const std::map<std::string, TableContainer>& TableManager::getSimpleTables() const {
         return m_simpleTables;
+    }
+
+    const TransmisTable& TableManager::getTransmisTable() const {
+        return m_transmisTable;
+    }
+
+    bool TableManager::useTransmis() const {
+        return hasTransmis;
     }
 
     bool TableManager::useImptvd() const {
